@@ -17,19 +17,31 @@ async function runBot(mode = 'comment') {
     // 1. Login
     console.log('Logging in...');
     await page.goto(`${SITE_URL}login`);
-    await page.fill('input[placeholder*="아이디"]', USER_ID);
-    await page.fill('input[placeholder*="비밀번호"]', USER_PASSWORD);
-    await page.click('button:has-text("로그인")');
+    await page.waitForSelector('input[placeholder*="아이디"]');
     
-    // Wait and verify login
-    await page.waitForTimeout(5000); 
+    // Type with delay for better compatibility with some frameworks
+    await page.type('input[placeholder*="아이디"]', USER_ID, { delay: 50 });
+    await page.type('input[placeholder*="비밀번호"]', USER_PASSWORD, { delay: 50 });
+    
+    // Try to click login button OR press Enter
+    const loginButton = page.locator('button:has-text("로그인")');
+    await loginButton.click();
+    // Alternatively, press Enter to submit form
+    // await page.keyboard.press('Enter');
+    
+    // Wait for redirection (longer wait to be sure)
+    console.log('Waiting for redirection...');
+    await page.waitForTimeout(7000); 
     const loginBtn = await page.locator('button:has-text("로그인")').isVisible();
     if (loginBtn) {
       console.error('Login failed: Still on login page.');
-      // Check for error messages
-      const errorMsg = await page.locator('.text-red-500, [role="alert"]').innerText().catch(() => '');
-      if (errorMsg) console.error(`Error message: ${errorMsg}`);
-      throw new Error('Login failed. Please check your ID and PASSWORD.');
+      // Check for common error message selectors or text
+      const errorMsg = await page.evaluate(() => {
+        const el = document.querySelector('.text-red-500, [role="alert"], .error-message');
+        return el ? el.innerText : 'Unknown error (Possible wrong credentials)';
+      });
+      console.error(`Site says: ${errorMsg}`);
+      throw new Error(`Login failed: ${errorMsg}`);
     }
     console.log('Login successful.');
 
