@@ -1,4 +1,4 @@
-name: Auto login-attendance-comment-post
+name: Auto login-attendance
 
 on:
   schedule:
