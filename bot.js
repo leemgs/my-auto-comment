@@ -19,7 +19,7 @@ async function runBot(mode = 'attendance') {
       throw new Error('USER_ID or USER_PASSWORD is not set. Please check your GitHub Secrets or .env file.');
     }
 
-    console.log('Logging in...');
+    console.log(`Logging in... (ID length: ${USER_ID.length}, Pass length: ${USER_PASSWORD.length})`);
     await page.goto(`${SITE_URL}login`);
     await page.waitForTimeout(3000); 
     await page.waitForSelector('input[placeholder*="아이디"]');
@@ -27,18 +27,21 @@ async function runBot(mode = 'attendance') {
     // Human-like sequence: Click -> Type -> Tab -> Type -> Enter
     console.log('Filling credentials...');
     await page.click('input[placeholder*="아이디"]');
-    await page.type('input[placeholder*="아이디"]', USER_ID, { delay: 100 });
+    await page.type('input[placeholder*="아이디"]', USER_ID.trim(), { delay: 100 });
     await page.keyboard.press('Tab');
     await page.waitForTimeout(500);
-    await page.type('input[placeholder*="비밀번호"]', USER_PASSWORD, { delay: 100 });
-    await page.waitForTimeout(500);
+    await page.type('input[placeholder*="비밀번호"]', USER_PASSWORD.trim(), { delay: 100 });
+    await page.waitForTimeout(1000);
     
-    console.log('Submitting via Enter key...');
-    await page.keyboard.press('Enter');
+    console.log('Clicking login button via script...');
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('로그인'));
+      if (btn) btn.click();
+    });
     
     // Wait for redirection
-    console.log('Waiting for redirection (12s)...');
-    await page.waitForTimeout(12000); 
+    console.log('Waiting for redirection (15s)...');
+    await page.waitForTimeout(15000); 
     
     const currentUrl = page.url();
     const loginBtnVisible = await page.locator('button:has-text("로그인")').isVisible();
@@ -56,7 +59,7 @@ async function runBot(mode = 'attendance') {
       
       let errorMsg = pageInfo.errorText;
       if (!errorMsg) {
-        const keywords = ['이메일 또는 비밀번호를 확인해주세요', '틀렸습니다', '올바르지', '실패'];
+        const keywords = ['아이디/비밀번호를 확인해주세요', '틀렸습니다', '올바르지', '실패', '가입'];
         for (const k of keywords) {
           if (pageInfo.bodyTextSnippet.includes(k)) {
             errorMsg = `Detected error: ${k}`;
