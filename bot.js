@@ -119,7 +119,7 @@ async function handleAttendance(page) {
   }
 
   console.log('Clicking the final attendance button...');
-  const submitBtn = page.locator('button:has-text("출석하기"), span:has-text("출석하기")');
+  const submitBtn = page.locator('button:has-text("출석하기")').first();
   await submitBtn.click();
   
   await page.waitForTimeout(3000);
