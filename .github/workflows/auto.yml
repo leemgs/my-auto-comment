@@ -6,7 +6,9 @@ on:
     - cron: '0 23 * * *'
     # 09:00 KST = 00:00 UTC
     - cron: '0 0 * * *'
-    # 15:00 KST = 06:00 UTC
+    # 10:00 KST = 01:00 UTC
+    - cron: '0 1 * * *'
+    # 15:00 KST = 06:00 UTC (Keeping for coverage if needed, but logic will filter)
     - cron: '0 6 * * *'
   workflow_dispatch:
 
@@ -45,8 +47,8 @@ jobs:
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
           SITE_URL: https://green-office.uk/
 
-      - name: Run Comment Bot (08:00 & 15:00 KST)
-        if: steps.time_check.outputs.kst_hour == '08' || steps.time_check.outputs.kst_hour == '15' || github.event_name == 'workflow_dispatch'
+      - name: Run Comment Bot (Tuesdays 10:00 KST)
+        if: (steps.time_check.outputs.kst_hour == '10' && steps.time_check.outputs.kst_day == '2') || github.event_name == 'workflow_dispatch'
         run: node index.js comment
         env:
           USER_ID: ${{ secrets.USER_ID }}
