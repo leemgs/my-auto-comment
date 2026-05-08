@@ -42,11 +42,3 @@ jobs:
           USER_ID: ${{ secrets.USER_ID || vars.USER_ID }}
           USER_PASSWORD: ${{ secrets.USER_PASSWORD || vars.USER_PASSWORD }}
           SITE_URL: https://green-office.uk/
-
-      - name: Run Weekly Post (Wednesdays 08:00 KST)
-        if: (steps.time_check.outputs.kst_hour == '08' && steps.time_check.outputs.kst_day == '3') || github.event_name == 'workflow_dispatch'
-        run: node index.js post
-        env:
-          USER_ID: ${{ secrets.USER_ID || vars.USER_ID }}
-          USER_PASSWORD: ${{ secrets.USER_PASSWORD || vars.USER_PASSWORD }}
-          SITE_URL: https://green-office.uk/
