@@ -40,16 +40,10 @@ async function runBot(mode = 'attendance') {
     await page.fill('input[placeholder*="비밀번호"]', USER_PASSWORD.trim());
     await page.waitForTimeout(1000);
     
-    console.log('Submitting login form via direct script submission...');
-    await page.evaluate(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        form.submit();
-      } else {
-        const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('로그인'));
-        if (btn) btn.click();
-      }
-    });
+    console.log('Submitting login form via native click...');
+    const loginBtn = page.locator('button[type="submit"], button:has-text("로그인")').last();
+    await loginBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await loginBtn.click({ force: true });
     
     // Wait for redirection
     console.log('Waiting for redirection (15s)...');
@@ -71,7 +65,8 @@ async function runBot(mode = 'attendance') {
       
       let errorMsg = pageInfo.errorText;
       if (!errorMsg) {
-        const keywords = ['아이디/비밀번호를 확인해주세요', '틀렸습니다', '올바르지', '실패', '가입', 'Cloudflare', 'security verification', 'bot detection'];
+        // Removed '가입' to avoid false positive from '회원가입' (Sign up)
+        const keywords = ['아이디/비밀번호를 확인해주세요', '틀렸습니다', '올바르지', '실패', 'Cloudflare', 'security verification', 'bot detection'];
         for (const k of keywords) {
           if (pageInfo.bodyTextSnippet.includes(k)) {
             errorMsg = (k === 'Cloudflare' || k === 'security verification') 
@@ -82,7 +77,7 @@ async function runBot(mode = 'attendance') {
         }
       }
       
-      if (!errorMsg) errorMsg = 'Unknown error (Possible bot detection or CAPTCHA)';
+      if (!errorMsg) errorMsg = 'Unknown error (Form may not have submitted properly or silently failed)';
       console.error(`Site status: ${errorMsg}`);
       throw new Error(`Login failed: ${errorMsg}`);
     }
