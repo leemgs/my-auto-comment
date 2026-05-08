@@ -1,4 +1,7 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const stealth = require('puppeteer-extra-plugin-stealth')();
+chromium.use(stealth);
+
 require('dotenv').config();
 
 const SITE_URL = process.env.SITE_URL || 'https://green-office.uk/';
@@ -6,10 +9,15 @@ const USER_ID = process.env.USER_ID;
 const USER_PASSWORD = process.env.USER_PASSWORD;
 
 async function runBot(mode = 'attendance') {
-  console.log(`Starting bot in ${mode} mode...`);
-  const browser = await chromium.launch({ headless: true });
+  console.log(`Starting bot in ${mode} mode with stealth plugin...`);
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
+  });
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    viewport: { width: 1280, height: 720 },
+    deviceScaleFactor: 1,
   });
   const page = await context.newPage();
 
@@ -63,10 +71,12 @@ async function runBot(mode = 'attendance') {
       
       let errorMsg = pageInfo.errorText;
       if (!errorMsg) {
-        const keywords = ['아이디/비밀번호를 확인해주세요', '틀렸습니다', '올바르지', '실패', '가입'];
+        const keywords = ['아이디/비밀번호를 확인해주세요', '틀렸습니다', '올바르지', '실패', '가입', 'Cloudflare', 'security verification', 'bot detection'];
         for (const k of keywords) {
           if (pageInfo.bodyTextSnippet.includes(k)) {
-            errorMsg = `Detected error: ${k}`;
+            errorMsg = (k === 'Cloudflare' || k === 'security verification') 
+              ? 'Blocked by Cloudflare Bot Protection' 
+              : `Detected error: ${k}`;
             break;
           }
         }
