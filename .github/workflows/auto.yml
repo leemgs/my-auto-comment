@@ -1,0 +1,56 @@
+name: Auto Comment and Post
+
+on:
+  schedule:
+    # 08:00 KST = 23:00 UTC (Previous day)
+    - cron: '0 23 * * *'
+    # 15:00 KST = 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  auto-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium
+
+      - name: Run Comment Bot
+        run: node index.js comment
+        env:
+          USER_ID: ${{ secrets.USER_ID }}
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+          SITE_URL: https://green-office.uk/
+
+      - name: Check if Wednesday KST
+        id: day_check
+        run: |
+          # Get current hour and day in KST
+          # TZ=Asia/Seoul date +%u returns 1(Mon)-7(Sun)
+          KST_DAY=$(TZ=Asia/Seoul date +%u)
+          KST_HOUR=$(TZ=Asia/Seoul date +%H)
+          echo "Current KST Day: $KST_DAY, Hour: $KST_HOUR"
+          if [ "$KST_DAY" = "3" ] && [ "$KST_HOUR" = "08" ]; then
+            echo "is_wednesday=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_wednesday=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Weekly Post
+        if: steps.day_check.outputs.is_wednesday == 'true' || github.event_name == 'workflow_dispatch'
+        run: node index.js post
+        env:
+          USER_ID: ${{ secrets.USER_ID }}
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+          SITE_URL: https://green-office.uk/

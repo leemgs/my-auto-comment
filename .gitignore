@@ -1,1 +1,7 @@
+node_modules/
 .env
+*.png
+*.log
+login.html
+home.html
+package-lock.json

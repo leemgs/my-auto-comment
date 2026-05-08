@@ -1,0 +1,27 @@
+{
+  "name": "my-auto-comment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leemgs/my-auto-comment.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/leemgs/my-auto-comment/issues"
+  },
+  "homepage": "https://github.com/leemgs/my-auto-comment#readme",
+  "dependencies": {
+    "@playwright/test": "^1.59.1",
+    "axios": "^1.16.0",
+    "dotenv": "^17.4.2",
+    "playwright": "^1.59.1",
+    "playwright-core": "^1.59.1"
+  }
+}
