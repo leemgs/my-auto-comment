@@ -116,6 +116,5 @@ async function handleAttendance(page) {
   await page.waitForTimeout(3000);
   console.log('Attendance completed.');
 }
-}
 
 module.exports = { runBot };
