@@ -5,7 +5,7 @@ const SITE_URL = process.env.SITE_URL || 'https://green-office.uk/';
 const USER_ID = process.env.USER_ID;
 const USER_PASSWORD = process.env.USER_PASSWORD;
 
-async function runBot(mode = 'comment') {
+async function runBot(mode = 'attendance') {
   console.log(`Starting bot in ${mode} mode...`);
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -21,24 +21,25 @@ async function runBot(mode = 'comment') {
 
     console.log('Logging in...');
     await page.goto(`${SITE_URL}login`);
-    await page.waitForTimeout(2000); // Wait for page to settle
+    await page.waitForTimeout(2000); 
     await page.waitForSelector('input[placeholder*="아이디"]');
     
     // Clear and type
-    await page.focus('input[placeholder*="아이디"]');
+    await page.click('input[placeholder*="아이디"]');
     await page.keyboard.down('Control'); await page.keyboard.press('A'); await page.keyboard.up('Control');
     await page.keyboard.press('Backspace');
-    await page.type('input[placeholder*="아이디"]', USER_ID, { delay: 100 });
+    await page.type('input[placeholder*="아이디"]', USER_ID, { delay: 50 });
     
-    await page.focus('input[placeholder*="비밀번호"]');
+    await page.click('input[placeholder*="비밀번호"]');
     await page.keyboard.down('Control'); await page.keyboard.press('A'); await page.keyboard.up('Control');
     await page.keyboard.press('Backspace');
-    await page.type('input[placeholder*="비밀번호"]', USER_PASSWORD, { delay: 100 });
+    await page.type('input[placeholder*="비밀번호"]', USER_PASSWORD, { delay: 50 });
     
-    console.log('Submitting login form via Enter key...');
-    await page.keyboard.press('Enter');
+    console.log('Clicking login button...');
+    const loginButton = page.locator('button:has-text("로그인")');
+    await loginButton.click();
     
-    // Wait for redirection (even longer wait)
+    // Wait for redirection
     console.log('Waiting for redirection...');
     await page.waitForTimeout(10000); 
     
@@ -46,19 +47,18 @@ async function runBot(mode = 'comment') {
     const loginBtnVisible = await page.locator('button:has-text("로그인")').isVisible();
     
     if (loginBtnVisible || currentUrl.includes('login')) {
-      console.error('Login failed: Still on login page or redirected back.');
+      console.error('Login failed: Still on login page.');
       const errorMsg = await page.evaluate(() => {
-        // Try to find any visible error text
-        const selectors = ['.text-red-500', '[role="alert"]', '.error-message', '.text-danger', '.errorMessage'];
+        const selectors = ['.text-red-500', '[role="alert"]', '.error-message', '.text-danger'];
         for (const s of selectors) {
           const el = document.querySelector(s);
           if (el && el.innerText.trim()) return el.innerText.trim();
         }
-        // Fallback: search for elements containing common error keywords
-        const keywords = ['틀렸습니다', '올바르지', '실패', '가입'];
+        // Specific error keywords (excluding normal words like '가입')
+        const keywords = ['틀렸습니다', '올바르지', '실패', '가입된 정보가 없습니다', '존재하지 않는'];
         const allText = document.body.innerText;
         for (const k of keywords) {
-          if (allText.includes(k)) return `Found error text: ${k}...`;
+          if (allText.includes(k)) return `Detected error: ${k}`;
         }
         return 'Unknown error (Possible wrong credentials or bot detection)';
       });
@@ -67,12 +67,10 @@ async function runBot(mode = 'comment') {
     }
     console.log('Login successful.');
 
-    if (mode === 'comment') {
-      await handleComment(page);
+    if (mode === 'attendance') {
+      await handleAttendance(page);
     } else if (mode === 'post') {
       await handlePost(page);
-    } else if (mode === 'attendance') {
-      await handleAttendance(page);
     }
 
   } catch (error) {
@@ -90,7 +88,6 @@ async function handleAttendance(page) {
   await page.waitForTimeout(3000);
 
   console.log('Selecting attendance option: 오늘도 화이팅');
-  // Try to find the button with the text provided by user
   const optionBtn = page.locator('button:has-text("오늘도 화이팅")');
   if (await optionBtn.isVisible()) {
     await optionBtn.click();
@@ -107,50 +104,11 @@ async function handleAttendance(page) {
   }
 
   console.log('Clicking the final attendance button...');
-  // The large button with the leaf emoji
   const submitBtn = page.locator('button:has-text("출석하기"), span:has-text("출석하기")');
   await submitBtn.click();
   
   await page.waitForTimeout(3000);
   console.log('Attendance completed.');
-}
-
-async function handleComment(page) {
-  // (Remaining handleComment code stays mostly same, but with minor robustness improvements)
-  console.log('Navigating to home to find a post...');
-  await page.goto(SITE_URL);
-  await page.waitForLoadState('networkidle');
-
-  const postLinks = await page.$$eval('a[href*="/posts/"]', links => links.map(a => a.href));
-  
-  if (postLinks.length === 0) {
-    console.log('No posts found. Looking for alternative selectors...');
-    const altLinks = await page.$$eval('main a', links => links.map(a => a.href).filter(href => href.includes('/posts/')));
-    if (altLinks.length > 0) postLinks.push(...altLinks);
-  }
-
-  if (postLinks.length === 0) {
-    throw new Error('Could not find any posts to comment on.');
-  }
-
-  const randomPost = postLinks[Math.floor(Math.random() * postLinks.length)];
-  console.log(`Selecting random post: ${randomPost}`);
-  await page.goto(randomPost);
-  await page.waitForTimeout(2000);
-
-  const messages = ["감사합니다.", "멋집니다."];
-  const message = messages[Math.floor(Math.random() * messages.length)];
-
-  console.log(`Leaving comment: ${message}`);
-  
-  const commentArea = await page.waitForSelector('textarea', { timeout: 10000 });
-  await commentArea.fill(message);
-  
-  const submitBtn = await page.locator('button:has-text("등록"), button:has-text("댓글")').first();
-  await submitBtn.click();
-  
-  await page.waitForTimeout(2000);
-  console.log('Comment submitted successfully.');
 }
 
 async function handlePost(page) {
