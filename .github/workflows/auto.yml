@@ -2,10 +2,8 @@ name: Auto login-attendance
 
 on:
   schedule:
-    # 08:00 KST = 23:00 UTC (Previous day)
-    - cron: '0 23 * * *'
-    # 09:00 KST = 00:00 UTC
-    - cron: '0 0 * * *'
+    # 07:00 KST = 22:00 UTC (Previous day)
+    - cron: '0 22 * * *'
   workflow_dispatch:
 
 jobs:
@@ -32,11 +30,8 @@ jobs:
           KST_HOUR=$(TZ=Asia/Seoul date +%H)
           KST_DAY=$(TZ=Asia/Seoul date +%u)
           echo "KST Hour: $KST_HOUR, KST Day: $KST_DAY"
-          echo "kst_hour=$KST_HOUR" >> $GITHUB_OUTPUT
-          echo "kst_day=$KST_DAY" >> $GITHUB_OUTPUT
 
-      - name: Run Attendance (09:00 KST)
-        if: steps.time_check.outputs.kst_hour == '09' || github.event_name == 'workflow_dispatch'
+      - name: Run Attendance (07:00 KST)
         run: node index.js attendance
         env:
           USER_ID: ${{ secrets.USER_ID || vars.USER_ID }}
