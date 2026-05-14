@@ -1,9 +1,11 @@
-name: Auto login-attendance
+name: Auto login-attendance and post
 
 on:
   schedule:
     # 07:00 KST = 22:00 UTC (Previous day)
     - cron: '0 22 * * *'
+    # 10:00 KST every Thursday = 01:00 UTC on Thursday
+    - cron: '0 1 * * 4'
   workflow_dispatch:
 
 jobs:
@@ -30,9 +32,20 @@ jobs:
           KST_HOUR=$(TZ=Asia/Seoul date +%H)
           KST_DAY=$(TZ=Asia/Seoul date +%u)
           echo "KST Hour: $KST_HOUR, KST Day: $KST_DAY"
+          echo "KST_HOUR=$KST_HOUR" >> $GITHUB_ENV
+          echo "KST_DAY=$KST_DAY" >> $GITHUB_ENV
 
       - name: Run Attendance (07:00 KST)
+        if: env.KST_HOUR == '07' || github.event_name == 'workflow_dispatch'
         run: node index.js attendance
+        env:
+          USER_ID: ${{ secrets.USER_ID || vars.USER_ID }}
+          USER_PASSWORD: ${{ secrets.USER_PASSWORD || vars.USER_PASSWORD }}
+          SITE_URL: https://green-office.uk/
+
+      - name: Run Post (10:00 KST Thursday)
+        if: env.KST_HOUR == '10' && env.KST_DAY == '4'
+        run: node index.js post
         env:
           USER_ID: ${{ secrets.USER_ID || vars.USER_ID }}
           USER_PASSWORD: ${{ secrets.USER_PASSWORD || vars.USER_PASSWORD }}

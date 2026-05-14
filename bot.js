@@ -86,6 +86,8 @@ async function runBot(mode = 'attendance') {
     // Always run attendance if requested
     if (mode === 'attendance') {
       await handleAttendance(page);
+    } else if (mode === 'post') {
+      await handlePost(page);
     }
 
   } catch (error) {
@@ -124,6 +126,53 @@ async function handleAttendance(page) {
   
   await page.waitForTimeout(3000);
   console.log('Attendance completed.');
+}
+
+async function handlePost(page) {
+  console.log('Navigating to posting page...');
+  // 게시판 작성 페이지로 이동 (URL은 실제 환경에 맞게 수정 필요)
+  await page.goto(`${SITE_URL}board/write`);
+  await page.waitForTimeout(3000);
+
+  const title = "🌿 [이번주의 식물] 오렌지자스민 키우기 & 관리 팁";
+  const content = `오렌지자스민은 달콤하고 은은한 향기가 나는 하얀 꽃과 붉은 열매를 감상할 수 있어 반려식물로 인기가 매우 높습니다. 초보자도 비교적 쉽게 키울 수 있는 오렌지자스민의 핵심 관리 정보를 정리해 드립니다!
+
+### 1. 햇빛과 온도
+- **햇빛**: 밝은 빛을 매우 좋아합니다. 하루 4~6시간 이상 밝은 곳(양지~반양지)에 두어야 꽃이 잘 핍니다. 한여름의 강한 직사광선은 잎을 타게 할 수 있으니 주의하세요.
+- **온도**: 15~25℃ 사이에서 가장 잘 자랍니다. 추위에 약하므로 겨울철에는 반드시 실내(10℃ 이상 유지)로 들여서 관리해야 합니다.
+
+### 2. 물 주기 및 습도
+- **물 주기**: 겉흙이 말랐을 때 화분 배수구로 물이 흘러나올 정도로 충분히 줍니다. 보통 주 1~2회 정도 확인하는 것이 좋습니다. 겨울철에는 물 주는 횟수를 줄입니다.
+- **습도**: 공중 습도가 높은 환경을 좋아합니다. 잎 주변에 자주 분무해 주면 건강하게 유지하는 데 큰 도움이 됩니다.
+
+### 3. 꽃과 열매 관리
+- **꽃**: 보통 봄부터 초여름(4~6월) 사이에 피지만, 환경이 좋으면 1년 내내 꽃을 볼 수도 있습니다.
+- **열매**: 꽃이 진 후 열매가 맺히는데, 실내에서는 벌이나 나비가 없어 자연 수정이 어렵습니다. 꽃이 피었을 때 붓 등으로 가볍게 인공 수정을 시도해 보세요.
+
+### 4. 기타 관리 팁
+- **가지치기**: 꽃이 진 후에 가지를 정리해 주면 수형이 예뻐지고 다음 꽃을 더 풍성하게 피울 수 있습니다.
+- **분갈이**: 1~2년에 한 번, 봄이나 가을에 화분이 작아졌을 때 배수가 잘되는 흙으로 분갈이해 줍니다.
+- **통풍**: 통풍이 잘되는 환경을 매우 좋아하므로, 실내에서 키우더라도 환기를 자주 시켜주세요!`;
+
+  console.log('Filling post title and content...');
+  try {
+    const titleInput = page.locator('input[name="title"], input[placeholder*="제목"]').first();
+    await titleInput.waitFor({ state: 'visible', timeout: 5000 });
+    await titleInput.fill(title);
+
+    const contentArea = page.locator('textarea[name="content"], textarea, .toastui-editor-contents, div[contenteditable="true"]').first();
+    await contentArea.fill(content);
+
+    console.log('Clicking the post submit button...');
+    const submitBtn = page.locator('button:has-text("등록"), button:has-text("작성"), button[type="submit"]').last();
+    await submitBtn.click();
+    
+    await page.waitForTimeout(3000);
+    console.log('Post completed.');
+  } catch (err) {
+    console.log('Error filling post. Please check the selectors for the posting page.', err);
+    throw err;
+  }
 }
 
 module.exports = { runBot };
